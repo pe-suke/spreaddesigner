@@ -241,7 +241,7 @@ public class AppController implements Initializable {
      * 
      * */
     private void cleanUpSpreadConfig() {
-        //TODO may be a memory leak.
+        //FIXME may be a memory leak.
         
         formMap = new HashMap<String, FormElement>();
     }
