@@ -15,6 +15,7 @@ public class ControlElement {
     private Element control;
     
     private String index;
+    private String name;
     private Map<String, ColumnElement> columnMap = new HashMap<>();
     private List<RowElement> rowList = new LinkedList<>();
     
@@ -24,6 +25,9 @@ public class ControlElement {
 
         Optional<Attribute> attributeIndex = Optional.ofNullable(control.attribute("index"));
         attributeIndex.ifPresent(o -> index = o.getValue());
+        
+        Optional<Attribute> attributeName = Optional.ofNullable(control.attribute("name"));
+        attributeName.ifPresent(o -> name = o.getValue());
         
         Iterator elementIterator = control.elementIterator();
         while(elementIterator.hasNext()) {
@@ -50,7 +54,7 @@ public class ControlElement {
     }
     
     public String getName() {
-        return control.attributeValue("name");
+        return name;
     }
     
     public String getIndex() {

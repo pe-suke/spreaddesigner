@@ -2,6 +2,7 @@ package jp.gr.java_conf.pesk.spreaddesigner.controller.app;
 
 
 import java.io.File;
+import java.lang.reflect.Field;
 import java.net.URL;
 import java.util.Collection;
 import java.util.HashMap;
@@ -21,6 +22,7 @@ import org.dom4j.io.SAXReader;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.WeakListChangeListener;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -41,6 +43,7 @@ import jp.gr.java_conf.pesk.spreaddesigner.App;
 import jp.gr.java_conf.pesk.spreaddesigner.enums.Aligns;
 import jp.gr.java_conf.pesk.spreaddesigner.enums.CellTypes;
 import jp.gr.java_conf.pesk.spreaddesigner.spread.dto.ColumnDto;
+import jp.gr.java_conf.pesk.spreaddesigner.spread.dto.ControllDto;
 import jp.gr.java_conf.pesk.spreaddesigner.spread.elements.ColumnElement;
 import jp.gr.java_conf.pesk.spreaddesigner.spread.elements.ControlElement;
 import jp.gr.java_conf.pesk.spreaddesigner.spread.elements.FormElement;
@@ -111,6 +114,12 @@ public class AppController implements Initializable {
     @FXML
     private TextField decimal;
     
+    @FXML
+    private TextField controlName;
+    
+    @FXML
+    private TextField controlIndex;
+    
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         // set items to the align vertical combobox
@@ -124,6 +133,13 @@ public class AppController implements Initializable {
         
         // add focus listener to bgColorTextField
         bgColorTextField.focusedProperty().addListener((o, old, newval) -> {if(!newval) onBgColorTextFieldFocusOut();});
+        
+        // set cell selection mode
+        spreadSheet.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+        spreadSheet.getSelectionModel().setCellSelectionEnabled(true);
+        
+        // set event hander that call onColumnClicked method
+        spreadSheet.setOnMouseClicked(e -> onColumnClicked(e));
         
         formComboBox.getItems().add("");
         controlComboBox.getItems().add("");
@@ -242,7 +258,6 @@ public class AppController implements Initializable {
      * */
     private void cleanUpSpreadConfig() {
         //FIXME may be a memory leak.
-        
         formMap = new HashMap<String, FormElement>();
     }
     
@@ -252,7 +267,7 @@ public class AppController implements Initializable {
      * */
     public void setSpreadSheet(ActionEvent event) {
         // clear spread.
-        spreadSheet.getColumns().clear();
+        clearSpreadSheet();
         
         // create column list that will be shown on the screen.
         List<TableColumn<RowElement, String>> spreadColumnList = new LinkedList<>();
@@ -279,19 +294,21 @@ public class AppController implements Initializable {
                                });
             
             // set columns
-            spreadSheet.getColumns().addAll(spreadColumnList);
+            spreadSheet.getColumns().setAll(spreadColumnList);
             
             // set dummy rows
-            ObservableList<RowElement> rowList = FXCollections.observableArrayList(spread.getRowList());
+            ObservableList<RowElement> rowList = FXCollections.observableArrayList(new RowElement(), new RowElement());
             spreadSheet.setItems(rowList);
             
-            // set cell selection mode
-            spreadSheet.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-            spreadSheet.getSelectionModel().setCellSelectionEnabled(true);
-            
-            // set event hander that call onColumnClicked method
-            spreadSheet.setOnMouseClicked(e -> onColumnClicked(e));
+            // set values to all fields as clicked first column.
+            setValuesToAllFields("column000");
         }
+    }
+    
+    private void clearSpreadSheet() {
+        // clear spread.
+        spreadSheet.getColumns().clear();
+        spreadSheet.getItems().clear();
     }
     
     /**
@@ -299,12 +316,44 @@ public class AppController implements Initializable {
      * 
      * */
     private void onColumnClicked(MouseEvent event) {
-        spreadSheet.getSelectionModel().clearSelection();
-        
         PickResult pickResult = event.getPickResult();
         Node node = pickResult.getIntersectedNode();
         String clickedColumnId = node.getId();
         
+        setValuesToAllFields(clickedColumnId);
+    }
+    
+    private void setValuesToAllFields(String clickedColumnId) {
+        // initialize all fields
+        spreadSheet.getSelectionModel().clearSelection();
+        initializeAllFields();
+        
+        // get column info
+        FormElement formElement = formMap.get(formComboBox.getValue());
+        Map<String, ControlElement> controlMap = formElement.getControlMap();
+        ControlElement controlElement = controlMap.get(controlComboBox.getValue());
+        
+        if (controlElement != null && StringUtils.isNotEmpty(clickedColumnId)) {
+            Map<String, ColumnElement> columnMap = controlElement.getColumnMap();
+            ColumnElement columnElement = columnMap.get(clickedColumnId);
+            
+            // set values to all fields from selected control.
+            ControllDto controllDto = new ControllDto();
+            ConvertUtils.convertControlElementToDto(controlElement, controllDto);
+            setValuesToControlFields(controllDto);
+            
+            // set values to all fields from selected column.
+            ColumnDto columnDto = new ColumnDto();
+            ConvertUtils.convertColumnElementToDto(columnElement, columnDto);
+            setValuesToColumnFields(columnDto);
+            onBgColorTextFieldFocusOut();
+            
+            // all rows of selected column will be changed color.
+            changeSpreadSheetSelection(clickedColumnId);
+        }
+    }
+    
+    private void changeSpreadSheetSelection(String clickedColumnId) {
         //FIXME investigate a way to retrieve columnIndex.
         int columnIndex = 0;
         String columnIndexStr = StringUtils.replace(clickedColumnId, "column", "");
@@ -316,32 +365,15 @@ public class AppController implements Initializable {
                 columnIndexStr = StringUtils.replaceOnce(columnIndexStr, "0", "");
             }
         }
-        
-        // initialize all fields
-        initializeAllFields();
-        
-        // get column info
-        FormElement formElement = formMap.get(formComboBox.getValue());
-        Map<String, ControlElement> controlMap = formElement.getControlMap();
-        ControlElement controlElement = controlMap.get(controlComboBox.getValue());
-        
-        if (controlElement != null && StringUtils.isNotEmpty(clickedColumnId)) {
-            Map<String, ColumnElement> columnMap = controlElement.getColumnMap();
-            
-            ColumnElement columnElement = columnMap.get(clickedColumnId);
-            ColumnDto columnDto = new ColumnDto();
-            
-            // set values to all fields from selected column.
-            ConvertUtils.convertElementToDto(columnElement, columnDto);
-            setValuesToAllFields(columnDto);
-            onBgColorTextFieldFocusOut();
-            
-            spreadSheet.getSelectionModel().selectRange(0, spreadSheet.getColumns().get(columnIndex), 1, spreadSheet.getColumns().get(columnIndex));
-        }
-        
+        spreadSheet.getSelectionModel().selectRange(0, spreadSheet.getColumns().get(columnIndex), 1, spreadSheet.getColumns().get(columnIndex));
     }
     
-    private void setValuesToAllFields(ColumnDto dto) {
+    private void setValuesToControlFields(ControllDto dto) {
+        controlName.setText(dto.getControlName());
+        controlIndex.setText(dto.getControlIndex());
+    }
+    
+    private void setValuesToColumnFields(ColumnDto dto) {
         label.setText(dto.getLabel());
         bgColorTextField.setText(dto.getBgColor());
         name.setText(dto.getName());
@@ -360,6 +392,8 @@ public class AppController implements Initializable {
     }
     
     private void initializeAllFields() {
+        controlName.setText("");
+        controlIndex.setText("");
         label.setText("");
         bgColorTextField.setText("");
         name.setText("");

@@ -5,11 +5,18 @@ import java.util.Optional;
 import org.dom4j.Element;
 
 import jp.gr.java_conf.pesk.spreaddesigner.spread.dto.ColumnDto;
+import jp.gr.java_conf.pesk.spreaddesigner.spread.dto.ControllDto;
 import jp.gr.java_conf.pesk.spreaddesigner.spread.elements.ColumnElement;
+import jp.gr.java_conf.pesk.spreaddesigner.spread.elements.ControlElement;
 
 public class ConvertUtils {
     
-    public static void convertElementToDto(ColumnElement element, ColumnDto dto) {
+    public static void convertControlElementToDto(ControlElement element, ControllDto dto) {
+        dto.setControlName(element.getName());
+        dto.setControlIndex(element.getIndex());
+    }
+    
+    public static void convertColumnElementToDto(ColumnElement element, ColumnDto dto) {
         Optional<Element> elLabel = Optional.ofNullable(element.getLabel());
         Optional<Element> elBgColor = Optional.ofNullable(element.getBgColor());
         Optional<Element> elName = Optional.ofNullable(element.getName());

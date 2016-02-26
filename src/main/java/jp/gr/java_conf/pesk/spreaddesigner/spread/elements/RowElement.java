@@ -39,6 +39,13 @@ public class RowElement {
         
     }
     
+    /**
+     * Use only for creating dummy rows
+     * */
+    public RowElement() {
+        
+    }
+    
     public Element getRow() {
         return row;
     }
