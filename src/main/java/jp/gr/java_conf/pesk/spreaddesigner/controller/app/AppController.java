@@ -34,6 +34,8 @@ import javafx.scene.control.SelectionMode;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TreeItem;
+import javafx.scene.control.TreeView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.PickResult;
 import javafx.scene.paint.Color;
@@ -120,6 +122,9 @@ public class AppController implements Initializable {
     @FXML
     private TextField controlIndex;
     
+    @FXML
+    private TreeView<String> spreadConfigTreeView;
+    
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         // set items to the align vertical combobox
@@ -143,6 +148,9 @@ public class AppController implements Initializable {
         
         formComboBox.getItems().add("");
         controlComboBox.getItems().add("");
+        
+        // set the root item to spreadConfigTreeView
+        spreadConfigTreeView.setRoot(new TreeItem<String>("Spread Config"));
     }
     
     /**
