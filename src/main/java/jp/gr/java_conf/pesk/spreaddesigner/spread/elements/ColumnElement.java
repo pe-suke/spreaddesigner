@@ -76,17 +76,26 @@ public class ColumnElement {
     public void setName(Element name) {
         this.name = name;
     }
+    public void setNameValue(String name) {
+        this.name.setText(name);
+    }
     public Element getLabel() {
         return label;
     }
     public void setLabel(Element label) {
         this.label = label;
     }
+    public void setLabelValue(String label) {
+        this.label.setText(label);
+    }
     public Element getBgColor() {
         return bgColor;
     }
     public void setBgColor(Element bgColor) {
         this.bgColor = bgColor;
+    }
+    public void setBgColorValue(String bgColor) {
+        this.bgColor.setText(bgColor);
     }
     public Element getWidth() {
         return width;

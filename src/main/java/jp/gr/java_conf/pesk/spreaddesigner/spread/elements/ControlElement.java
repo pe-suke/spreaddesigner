@@ -60,6 +60,12 @@ public class ControlElement {
     public String getIndex() {
         return index;
     }
+    public void setName(String name) {
+        this.name = name;
+    }
+    public void setIndex(String index) {
+        this.index = index;
+    }
     
     public Map<String, ColumnElement> getColumnMap() {
         return columnMap;

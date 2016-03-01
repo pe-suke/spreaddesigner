@@ -129,6 +129,13 @@ public class AppController implements Initializable {
     
     private TreeItem<String> currentFocusedItem;
     
+    private List<ColumnDto> currentColumnList = new LinkedList<>();
+    
+    private ControlDto currentControl = new ControlDto();
+    
+    private String previousColumnId;
+    private String currentColumnId;
+    
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         // set items to the align vertical combobox
@@ -263,7 +270,7 @@ public class AppController implements Initializable {
      * 
      * */
     private void cleanUpSpreadConfig() {
-        //FIXME may be a memory leak.
+        //FIXME memory leaks may occur.
         formMap = new HashMap<String, FormElement>();
     }
     
@@ -273,7 +280,7 @@ public class AppController implements Initializable {
             Alert alert = new Alert(AlertType.CONFIRMATION);
             alert.setTitle("Warning!!");
             alert.getDialogPane().setHeaderText("The spread configurations are NOT saved");
-            alert.getDialogPane().setContentText("If you click yes, edited configutaion of this spread are not saved. And display selected spread");
+            alert.getDialogPane().setContentText("If you click OK, edited configutaion of this spread are not saved. And display selected spread");
             Optional<ButtonType> result = alert.showAndWait();
             
             if (result.get() == ButtonType.OK) {
@@ -311,6 +318,9 @@ public class AppController implements Initializable {
         ControlElement spread = controlMap.get(selectedControl);
         
         if (spread != null) {
+            // clear current control and columns
+            clearCurrent();
+            
             // set column text to all columns that will be shown on the screen.
             Collection<ColumnElement> columnMapCollection = spread.getColumnMap().values();
             columnMapCollection.stream()
@@ -322,6 +332,10 @@ public class AppController implements Initializable {
                                    spreadColumn.setCellValueFactory(param -> param.getValue().dummyProperty());
                                    spreadColumn.setSortable(false);
                                    spreadColumnList.add(spreadColumn);
+                                   
+                                   ColumnDto currentColumnDto = new ColumnDto();
+                                   ConvertUtils.convertColumnElementToDto(o, currentColumnDto);
+                                   currentColumnList.add(currentColumnDto);
                                });
             
             // set columns
@@ -335,10 +349,17 @@ public class AppController implements Initializable {
             this.formName.setText(selectedForm);
             this.controlName.setText(spread.getName());
             this.controlIndex.setText(spread.getIndex());
+            
+            ConvertUtils.convertControlElementToDto(spread, currentControl);
+            
             setValuesToAllFields("column000");
         }
     }
     
+    private void clearCurrent() {
+        currentControl = new ControlDto();
+        currentColumnList.clear();
+    }
     
     private void clearSpreadSheet() {
         // clear spread.
@@ -485,9 +506,14 @@ public class AppController implements Initializable {
         }
         removeEditingSpread(spreadId);
         
+        ControlDto currentControl = getValuesFromControlFields();
+        ColumnDto currentColumn = getValuesFromColumnFields();
+        
         
         
     }
+    
+    
     
     public void onClickSaveAs(ActionEvent event) {
         

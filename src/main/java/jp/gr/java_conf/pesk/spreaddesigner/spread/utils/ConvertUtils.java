@@ -16,6 +16,11 @@ public class ConvertUtils {
         dto.setControlIndex(element.getIndex());
     }
     
+    public static void convertControlDtoToElement(ControlDto dto, ControlElement element) {
+        element.setName(dto.getControlName());
+        element.setIndex(dto.getControlIndex());
+    }
+    
     public static void convertColumnElementToDto(ColumnElement element, ColumnDto dto) {
         Optional<Element> elLabel = Optional.ofNullable(element.getLabel());
         Optional<Element> elBgColor = Optional.ofNullable(element.getBgColor());
@@ -60,5 +65,9 @@ public class ConvertUtils {
         
         String decimal = elCellType.flatMap(o -> Optional.ofNullable(o.attributeValue("decimal"))).orElse("");
         dto.setDecimal(decimal);
+    }
+    
+    public static void convertColumnDtoToElement(ColumnDto dto, ColumnElement element) {
+        element.setNameValue(dto.getName());
     }
 }
