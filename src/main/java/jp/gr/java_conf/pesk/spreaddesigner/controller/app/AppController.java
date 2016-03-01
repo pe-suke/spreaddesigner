@@ -26,6 +26,9 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.Node;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ColorPicker;
 import javafx.scene.control.ComboBox;
@@ -45,7 +48,7 @@ import jp.gr.java_conf.pesk.spreaddesigner.controls.TextFieldTreeCell;
 import jp.gr.java_conf.pesk.spreaddesigner.enums.Aligns;
 import jp.gr.java_conf.pesk.spreaddesigner.enums.CellTypes;
 import jp.gr.java_conf.pesk.spreaddesigner.spread.dto.ColumnDto;
-import jp.gr.java_conf.pesk.spreaddesigner.spread.dto.ControllDto;
+import jp.gr.java_conf.pesk.spreaddesigner.spread.dto.ControlDto;
 import jp.gr.java_conf.pesk.spreaddesigner.spread.elements.ColumnElement;
 import jp.gr.java_conf.pesk.spreaddesigner.spread.elements.ControlElement;
 import jp.gr.java_conf.pesk.spreaddesigner.spread.elements.FormElement;
@@ -121,6 +124,10 @@ public class AppController implements Initializable {
     
     @FXML
     private TreeView<String> spreadConfigTreeView;
+    
+    private Map<String, Boolean> editingSpread = new HashMap<>();
+    
+    private TreeItem<String> currentFocusedItem;
     
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -261,8 +268,37 @@ public class AppController implements Initializable {
     }
     
     public void setSpreadSheet(String formName, String controlName) {
+        if (getEditingSpreadSize() > 0) {
+            // show alert
+            Alert alert = new Alert(AlertType.CONFIRMATION);
+            alert.setTitle("Warning!!");
+            alert.getDialogPane().setHeaderText("The spread configurations are NOT saved");
+            alert.getDialogPane().setContentText("If you click yes, edited configutaion of this spread are not saved. And display selected spread");
+            Optional<ButtonType> result = alert.showAndWait();
+            
+            if (result.get() == ButtonType.OK) {
+                removeEditingSpreadAll();
+                displaySpread(formName, controlName);
+            } else {
+                spreadConfigTreeView.getSelectionModel().clearSelection();
+                spreadConfigTreeView.getSelectionModel().select(getCurrentFocusedItem());
+            }
+            
+        } else {
+            displaySpread(formName, controlName);
+        }
+        
+    }
+    
+    private void displaySpread(String formName, String controlName) {
+        // set the current focused control in tree view
+        setCurrentFocusedItem(spreadConfigTreeView.getSelectionModel().getSelectedItem());
+        
         // clear spread.
         clearSpreadSheet();
+        
+        // change the state of control
+        putEditingSpread(formName + controlName);
         
         // create column list that will be shown on the screen.
         List<TableColumn<RowElement, String>> spreadColumnList = new LinkedList<>();
@@ -303,6 +339,7 @@ public class AppController implements Initializable {
         }
     }
     
+    
     private void clearSpreadSheet() {
         // clear spread.
         spreadSheet.getColumns().clear();
@@ -342,7 +379,7 @@ public class AppController implements Initializable {
             ColumnElement columnElement = columnMap.get(clickedColumnId);
             
             // set values to all fields from selected control.
-            ControllDto controllDto = new ControllDto();
+            ControlDto controllDto = new ControlDto();
             ConvertUtils.convertControlElementToDto(controlElement, controllDto);
             setValuesToControlFields(controllDto);
             
@@ -369,10 +406,11 @@ public class AppController implements Initializable {
                 columnIndexStr = StringUtils.replaceOnce(columnIndexStr, "0", "");
             }
         }
+        
         spreadSheet.getSelectionModel().selectRange(0, spreadSheet.getColumns().get(columnIndex), 1, spreadSheet.getColumns().get(columnIndex));
     }
     
-    private void setValuesToControlFields(ControllDto dto) {
+    private void setValuesToControlFields(ControlDto dto) {
         controlName.setText(dto.getControlName());
         controlIndex.setText(dto.getControlIndex());
     }
@@ -395,10 +433,34 @@ public class AppController implements Initializable {
         decimal.setText(dto.getDecimal());
     }
     
+    private ControlDto getValuesFromControlFields() {
+        ControlDto dto = new ControlDto();
+        dto.setControlName(controlName.getText());
+        dto.setControlIndex(controlIndex.getText());
+        return dto;
+    }
+    private ColumnDto getValuesFromColumnFields() {
+        ColumnDto dto = new ColumnDto();
+        dto.setLabel(label.getText());
+        dto.setBgColor(bgColorTextField.getText());
+        dto.setName(name.getText());
+        dto.setHeight(height.getText());
+        dto.setWidth(width.getText());
+        dto.setHidden(hidden.isSelected());
+        dto.setLock(lock.isSelected());
+        dto.setMaxsize(maxsize.getText());
+        dto.setAlignVertical(alignVerticalComboBox.getValue());
+        dto.setAlignHorizontal(alignHorizontalComboBox.getValue());
+        dto.setType(cellTypeComboBox.getValue());
+        dto.setDelimiter(delimiter.isSelected());
+        dto.setLower(lower.getText());
+        dto.setUpper(upper.getText());
+        dto.setDecimal(decimal.getText());
+        
+        return dto;
+    }
+    
     private void initializeAllFields() {
-//        spreadConfigTreeView.getRoot().getChildren().clear();
-//        controlName.setText("");
-//        controlIndex.setText("");
         label.setText("");
         bgColorTextField.setText("");
         name.setText("");
@@ -415,5 +477,44 @@ public class AppController implements Initializable {
         upper.setText("");
         decimal.setText("");
     }
+    
+    public void onClickSave(ActionEvent event) {
+        String spreadId = formName.getText() + controlName.getText();
+        if (StringUtils.isNotEmpty(controlIndex.getText())) {
+            spreadId +=  "(index:[" + controlIndex.getText() + "])";
+        }
+        removeEditingSpread(spreadId);
+        
+        
+        
+    }
+    
+    public void onClickSaveAs(ActionEvent event) {
+        
+    }
+    
+    private void putEditingSpread(String spreadId) {
+        editingSpread.put(spreadId, true);
+    }
+    private void removeEditingSpread(String spreadId) {
+        editingSpread.remove(spreadId);
+    }
+    private void removeEditingSpreadAll() {
+        editingSpread.clear();
+    }
+    private int getEditingSpreadSize() {
+        return editingSpread.size();
+    }
+    private boolean isEditingSpread(String spreadId) {
+        return editingSpread.get(spreadId) != null ? true:false;
+    }
+    
+    private void setCurrentFocusedItem(TreeItem<String> item) {
+        this.currentFocusedItem = item;
+    }
+    private TreeItem<String> getCurrentFocusedItem() {
+        return this.currentFocusedItem;
+    }
+
 
 }

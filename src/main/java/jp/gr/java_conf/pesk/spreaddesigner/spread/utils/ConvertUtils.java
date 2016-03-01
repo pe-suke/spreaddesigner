@@ -5,13 +5,13 @@ import java.util.Optional;
 import org.dom4j.Element;
 
 import jp.gr.java_conf.pesk.spreaddesigner.spread.dto.ColumnDto;
-import jp.gr.java_conf.pesk.spreaddesigner.spread.dto.ControllDto;
+import jp.gr.java_conf.pesk.spreaddesigner.spread.dto.ControlDto;
 import jp.gr.java_conf.pesk.spreaddesigner.spread.elements.ColumnElement;
 import jp.gr.java_conf.pesk.spreaddesigner.spread.elements.ControlElement;
 
 public class ConvertUtils {
     
-    public static void convertControlElementToDto(ControlElement element, ControllDto dto) {
+    public static void convertControlElementToDto(ControlElement element, ControlDto dto) {
         dto.setControlName(element.getName());
         dto.setControlIndex(element.getIndex());
     }

@@ -1,6 +1,6 @@
 package jp.gr.java_conf.pesk.spreaddesigner.spread.dto;
 
-public class ControllDto {
+public class ControlDto {
     
     private String controlName;
     private String controlIndex;

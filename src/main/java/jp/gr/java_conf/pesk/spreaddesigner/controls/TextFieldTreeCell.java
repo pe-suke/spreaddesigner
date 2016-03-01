@@ -27,6 +27,7 @@ public class TextFieldTreeCell extends TreeCell<String>{
         textField.selectAll();
         
         controller.setSpreadSheet(getTreeItem().getParent().getValue(), getTreeItem().getValue());
+        
     }
 
     @Override
