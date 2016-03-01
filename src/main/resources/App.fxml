@@ -57,10 +57,12 @@
                           <content>
                             <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
                                  <children>
-                                    <Label layoutX="23.0" layoutY="14.0" text="control name" />
-                                    <Label layoutX="23.0" layoutY="53.0" text="control index" />
-                                    <TextField fx:id="controlName" layoutX="112.0" layoutY="10.0" />
-                                    <TextField fx:id="controlIndex" layoutX="112.0" layoutY="49.0" />
+                                    <Label layoutX="23.0" layoutY="65.0" text="control name" />
+                                    <Label layoutX="23.0" layoutY="104.0" text="control index" />
+                                    <TextField fx:id="controlName" layoutX="112.0" layoutY="61.0" />
+                                    <TextField fx:id="controlIndex" layoutX="112.0" layoutY="100.0" />
+                                    <Label layoutX="23.0" layoutY="29.0" text="form name" />
+                                    <TextField fx:id="formName" editable="false" layoutX="112.0" layoutY="25.0" />
                                  </children>
                               </AnchorPane>
                           </content>
@@ -111,16 +113,6 @@
                               </AnchorPane>
                         </content>
                       </Tab>
-                        <Tab text="Untitled Tab">
-                          <content>
-                            <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
-                                 <children>
-                                    <ComboBox fx:id="formComboBox" layoutX="9.0" layoutY="29.0" onAction="#onChangeForm" prefWidth="150.0" />
-                                    <ComboBox fx:id="controlComboBox" layoutX="248.0" layoutY="32.0" onAction="#setSpreadSheet" prefWidth="150.0" />
-                                 </children>
-                              </AnchorPane>
-                          </content>
-                        </Tab>
                     </tabs>
                   </TabPane>
                </children>

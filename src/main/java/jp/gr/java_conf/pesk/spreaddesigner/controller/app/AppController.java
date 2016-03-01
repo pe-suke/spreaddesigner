@@ -2,7 +2,6 @@ package jp.gr.java_conf.pesk.spreaddesigner.controller.app;
 
 
 import java.io.File;
-import java.lang.reflect.Field;
 import java.net.URL;
 import java.util.Collection;
 import java.util.HashMap;
@@ -11,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.ResourceBundle;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang.StringUtils;
@@ -22,7 +22,6 @@ import org.dom4j.io.SAXReader;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.collections.WeakListChangeListener;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -42,6 +41,7 @@ import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 import javafx.stage.FileChooser.ExtensionFilter;
 import jp.gr.java_conf.pesk.spreaddesigner.App;
+import jp.gr.java_conf.pesk.spreaddesigner.controls.TextFieldTreeCell;
 import jp.gr.java_conf.pesk.spreaddesigner.enums.Aligns;
 import jp.gr.java_conf.pesk.spreaddesigner.enums.CellTypes;
 import jp.gr.java_conf.pesk.spreaddesigner.spread.dto.ColumnDto;
@@ -68,12 +68,6 @@ public class AppController implements Initializable {
     
     @FXML
     private ColorPicker bgColorPicker;
-    
-    @FXML
-    private ComboBox<String> formComboBox;
-    
-    @FXML
-    private ComboBox<String> controlComboBox;
     
     @FXML
     private TableView<RowElement> spreadSheet;
@@ -117,6 +111,9 @@ public class AppController implements Initializable {
     private TextField decimal;
     
     @FXML
+    private TextField formName;
+    
+    @FXML
     private TextField controlName;
     
     @FXML
@@ -146,11 +143,14 @@ public class AppController implements Initializable {
         // set event hander that call onColumnClicked method
         spreadSheet.setOnMouseClicked(e -> onColumnClicked(e));
         
-        formComboBox.getItems().add("");
-        controlComboBox.getItems().add("");
-        
         // set the root item to spreadConfigTreeView
-        spreadConfigTreeView.setRoot(new TreeItem<String>("Spread Config"));
+        TreeItem<String> rootItem = new TreeItem<String>("Spread Config");
+        rootItem.setExpanded(true);
+        spreadConfigTreeView.setEditable(true);
+        
+        // set the cell with controller for retrieving the value of edited tree view cell.
+        spreadConfigTreeView.setCellFactory((TreeView<String> p) -> new TextFieldTreeCell(this));
+        spreadConfigTreeView.setRoot(rootItem);
     }
     
     /**
@@ -163,7 +163,6 @@ public class AppController implements Initializable {
         Platform.exit();
     }
     
-    
     /**
      * Open Dialog for selecting SpreadConfig.xml
      * 
@@ -173,9 +172,8 @@ public class AppController implements Initializable {
     public void openSpreadConfig(ActionEvent event) {
         // Remove instances from SpreadConfig and instantiate new form map.
         cleanUpSpreadConfig();
-        
-        // clear formComboBox
-        formComboBox.getItems().clear();
+        clearSpreadConfigTreeView();
+        initializeAllFields();
         
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Select your SpreadConfig.xml");
@@ -197,10 +195,19 @@ public class AppController implements Initializable {
                     String formName = formElement.getName();
                     formMap.put(formName, formElement);
                     
-                    formComboBox.getItems().add(formName);
+                    // set the form name and control name to tree view in left pain.
+                    TreeItem<String> formItem = new TreeItem<>(formName);
+                    Optional.ofNullable(formMap.get(formName)).ifPresent(formEl -> {
+                        Map<String, ControlElement> controlMap = formEl.getControlMap();
+                        
+                        Stream<String> keyStream = controlMap.keySet().stream();
+                        
+                        // remove and set again
+                        formItem.getChildren().setAll(keyStream.sorted((o1, o2) -> o1.compareTo(o2)).map(o -> new TreeItem<String>(o)).collect(Collectors.toList()));
+                    });
                     
+                    spreadConfigTreeView.getRoot().getChildren().add(formItem);
                 }
-                
             } catch(DocumentException e) {
                 e.printStackTrace();
             }
@@ -210,6 +217,10 @@ public class AppController implements Initializable {
             System.out.println("cancelled!!");
         }
         
+    }
+    
+    private void clearSpreadConfigTreeView() {
+        spreadConfigTreeView.getRoot().getChildren().clear();
     }
     
     /**
@@ -241,26 +252,6 @@ public class AppController implements Initializable {
     }
     
     /**
-     * set control value when change the value in formComboBox
-     * 
-     * */
-    @FXML
-    public void onChangeForm() {
-        String selectedForm = formComboBox.getValue();
-        
-        Optional.ofNullable(formMap.get(selectedForm)).ifPresent(form -> {
-            Map<String, ControlElement> controlMap = form.getControlMap();
-            
-            Stream<String> keyStream = controlMap.keySet().stream();
-            
-            // remove and set again
-            controlComboBox.getItems().clear();
-            controlComboBox.getItems().add("");
-            controlComboBox.getItems().addAll(keyStream.sorted((o1, o2) -> o1.compareTo(o2)).toArray(o -> new String[o]));
-        });
-    }
-    
-    /**
      * clean up spreadConfig information
      * 
      * */
@@ -269,11 +260,7 @@ public class AppController implements Initializable {
         formMap = new HashMap<String, FormElement>();
     }
     
-    /**
-     * set values to treeTableView
-     * @param event
-     * */
-    public void setSpreadSheet(ActionEvent event) {
+    public void setSpreadSheet(String formName, String controlName) {
         // clear spread.
         clearSpreadSheet();
         
@@ -281,10 +268,10 @@ public class AppController implements Initializable {
         List<TableColumn<RowElement, String>> spreadColumnList = new LinkedList<>();
         
         // retrieve spread config
-        String selectedForm = formComboBox.getValue();
+        String selectedForm = formName;
         FormElement formElement = formMap.get(selectedForm);
         Map<String, ControlElement> controlMap = formElement.getControlMap();
-        String selectedControl = controlComboBox.getValue();
+        String selectedControl = controlName;
         ControlElement spread = controlMap.get(selectedControl);
         
         if (spread != null) {
@@ -309,6 +296,9 @@ public class AppController implements Initializable {
             spreadSheet.setItems(rowList);
             
             // set values to all fields as clicked first column.
+            this.formName.setText(selectedForm);
+            this.controlName.setText(spread.getName());
+            this.controlIndex.setText(spread.getIndex());
             setValuesToAllFields("column000");
         }
     }
@@ -337,9 +327,15 @@ public class AppController implements Initializable {
         initializeAllFields();
         
         // get column info
-        FormElement formElement = formMap.get(formComboBox.getValue());
+        FormElement formElement = formMap.get(formName.getText());
         Map<String, ControlElement> controlMap = formElement.getControlMap();
-        ControlElement controlElement = controlMap.get(controlComboBox.getValue());
+        
+        String controlWithId = controlName.getText();
+        if (StringUtils.isNotEmpty(controlIndex.getText())) {
+            controlWithId += "(index:[" + controlIndex.getText() + "])";
+        }
+        
+        ControlElement controlElement = controlMap.get(controlWithId);
         
         if (controlElement != null && StringUtils.isNotEmpty(clickedColumnId)) {
             Map<String, ColumnElement> columnMap = controlElement.getColumnMap();
@@ -400,8 +396,9 @@ public class AppController implements Initializable {
     }
     
     private void initializeAllFields() {
-        controlName.setText("");
-        controlIndex.setText("");
+//        spreadConfigTreeView.getRoot().getChildren().clear();
+//        controlName.setText("");
+//        controlIndex.setText("");
         label.setText("");
         bgColorTextField.setText("");
         name.setText("");
